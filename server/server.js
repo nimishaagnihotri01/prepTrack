@@ -7,6 +7,7 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const learningRoutes = require("./routes/learningRoutes"); // ⭐ ADD THIS
 const aiRoutes = require("./routes/aiRoutes");
+const codeRoutes = require("./routes/codeRoutes");
 
 const connectDB = require("./config/db");
 
@@ -21,7 +22,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/learning", learningRoutes); // ⭐ ADD THIS
 app.use("/api/ai", aiRoutes);
-
+app.use("/api/code", codeRoutes);
 const PORT = 5000;
 
 app.listen(PORT, () => {
