@@ -8,13 +8,15 @@ const learningSchema = new mongoose.Schema(
       type: String,
       default: "Pending",
     },
+    completedAt: Date, // ⭐ ADD THIS
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
   },
-  { timestamps: true } // ⭐ VERY IMPORTANT
+  { timestamps: true }
 );
+
 
 
 module.exports = mongoose.model("Learning", learningSchema);

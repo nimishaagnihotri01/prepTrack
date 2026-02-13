@@ -29,9 +29,18 @@ useEffect(() => {
       setLoading(true);
 
       // ⭐ CALL BACKEND AI ROUTE
-      const res = await API.post("/ai/chat", {
-        message: userMessage,
-      });
+      const token = localStorage.getItem("token");
+
+const res = await API.post(
+  "/ai/chat",
+  { message: userMessage },
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+
 
       setChat((prev) => [
         ...prev,
@@ -56,7 +65,7 @@ useEffect(() => {
         onClick={() => setOpen(true)}
         className="
           w-full flex items-center justify-center gap-2
-          bg-gradient-to-r from-[#0f2a44] to-[#1f4e79]
+          bg-gradient-to-r from-[#0f2a44] to-[#0f2a44]
           text-white p-4 rounded-xl shadow-lg
           hover:scale-[1.03] transition
         "

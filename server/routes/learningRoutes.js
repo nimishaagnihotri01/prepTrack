@@ -46,8 +46,13 @@ router.patch("/:id", protect, async (req, res) => {
       return res.status(404).json({ message: "Not found" });
     }
 
-    item.status =
-      item.status === "Completed" ? "Pending" : "Completed";
+    if (item.status === "Completed") {
+      item.status = "Pending";
+      item.completedAt = null;
+    } else {
+      item.status = "Completed";
+      item.completedAt = new Date(); // ⭐ SAVE REAL COMPLETION TIME
+    }
 
     await item.save();
 
@@ -56,5 +61,6 @@ router.patch("/:id", protect, async (req, res) => {
     res.status(500).json({ message: "Update failed" });
   }
 });
+
 
 module.exports = router;

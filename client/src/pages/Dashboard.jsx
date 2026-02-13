@@ -88,16 +88,15 @@ export default function Dashboard() {
   };
 
   learning.forEach((item) => {
-    if (!item.createdAt) return;
+  if (!item.completedAt) return; // ⭐ only completed tasks
 
-    const date = new Date(item.createdAt);
-    const dayIndex = date.getDay();
-    const mappedDay = days[dayIndex === 0 ? 6 : dayIndex - 1];
+  const date = new Date(item.completedAt);
+  const dayIndex = date.getDay();
+  const mappedDay = days[dayIndex === 0 ? 6 : dayIndex - 1];
 
-    if (item.status === "Completed") {
-      weeklyCount[mappedDay]++;
-    }
-  });
+  weeklyCount[mappedDay]++;
+});
+
 
   const chartData = {
     labels: days,
