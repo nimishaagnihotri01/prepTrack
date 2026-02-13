@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* 🌸 Soft Floating Animation */
+
+@keyframes floatSoft {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-25px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-floatSoft {
+  animation: floatSoft 8s ease-in-out infinite;
+}
+
+/* ✨ Fade Entrance */
+
+@keyframes fadeSoft {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0px) scale(1);
+  }
+}
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spinSlow {
+  animation: spinSlow 6s linear infinite;
+}
+
