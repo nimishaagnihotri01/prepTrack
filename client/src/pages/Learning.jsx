@@ -251,7 +251,8 @@ export default function Learning() {
               Coding Arena — {selectedTask?.title}
             </h2>
 
-            <CodingArena />
+            <CodingArena taskId={selectedTask?._id} />
+
 
           </div>
         </div>

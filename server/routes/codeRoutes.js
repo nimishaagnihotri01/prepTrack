@@ -1,34 +1,59 @@
 const express = require("express");
 const router = express.Router();
+const protect = require("../middleware/authMiddleware");
+const { exec } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+const { v4: uuid } = require("uuid");
 
-router.post("/run", async (req, res) => {
+// ⭐ CREATE TEMP CODE FOLDER
+const codeDir = path.join(__dirname, "../temp");
+
+if (!fs.existsSync(codeDir)) {
+  fs.mkdirSync(codeDir);
+}
+
+// ⭐ RUN CODE LOCALLY
+router.post("/run", protect, async (req, res) => {
   try {
-    const { language, code } = req.body;
+    const { code, language } = req.body;
 
-    const response = await fetch("https://emkc.org/api/v2/piston/execute", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        language,
-        version: "*",
-        files: [
-          {
-            content: code,
-          },
-        ],
-      }),
+    const fileId = uuid();
+    let filePath;
+    let command;
+
+    // ⭐ JAVASCRIPT EXECUTION
+    if (language === "javascript") {
+      filePath = path.join(codeDir, `${fileId}.js`);
+      fs.writeFileSync(filePath, code);
+
+      command = `node ${filePath}`;
+    }
+
+    // ⭐ PYTHON EXECUTION
+    if (language === "python") {
+      filePath = path.join(codeDir, `${fileId}.py`);
+      fs.writeFileSync(filePath, code);
+
+      command = `python ${filePath}`;
+    }
+
+    exec(command, (error, stdout, stderr) => {
+      // delete file after run
+      fs.unlinkSync(filePath);
+
+      if (error) {
+        return res.json({ output: stderr });
+      }
+
+      res.json({
+        output: stdout || "No Output",
+      });
     });
 
-    const data = await response.json();
-
-    res.json({
-      output: data.run.output,
-    });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Code execution failed" });
+    console.log("LOCAL EXEC ERROR 👉", err);
+    res.status(500).json({ message: "Execution failed" });
   }
 });
 
