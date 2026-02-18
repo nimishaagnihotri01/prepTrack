@@ -5,6 +5,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Learning from "./pages/Learning";
 import Profile from "./pages/Profile";
+import Verify from "./pages/Verify";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./components/MainLayout";
@@ -51,6 +52,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/verify/:token" element={<Verify />} />
 
       </Routes>
     </Router>

@@ -1,68 +1,131 @@
 const User = require("../models/user");
+const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+const sendMail = require("../utils/sendMail");
 
-const registerUser = async (req, res) => {
+// 🔐 GENERATE JWT
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
+};
+
+//
+// ✅ REGISTER USER
+//
+exports.registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Check if user exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
+    // check existing user
+    let user = await User.findOne({ email });
+
+    // ⭐ If user exists but NOT verified → resend mail
+    if (user && !user.isVerified) {
+      const verifyToken = crypto.randomBytes(32).toString("hex");
+
+      user.verifyToken = verifyToken;
+      await user.save();
+
+      await sendMail(user.email, verifyToken);
+
+      return res.status(200).json({
+        message:
+          "Account exists but not verified. Verification email resent.",
+      });
+    }
+
+    // if user already verified
+    if (user) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // create new user
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const user = await User.create({
+    const verifyToken = crypto.randomBytes(32).toString("hex");
+
+    user = await User.create({
       name,
       email,
       password: hashedPassword,
+      verifyToken,
+      isVerified: false,
     });
+
+    // send verification email
+    await sendMail(email, verifyToken);
 
     res.status(201).json({
-      message: "User registered successfully",
-      user,
+      message: "Registered successfully. Please verify your email.",
     });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    console.log("REGISTER ERROR:", err);
+    res.status(500).json({ message: "Server Error" });
   }
 };
-const jwt = require("jsonwebtoken");
 
-const loginUser = async (req, res) => {
+//
+// ✅ VERIFY EMAIL
+//
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const user = await User.findOne({ verifyToken: token });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid or expired verification link",
+      });
+    }
+
+    user.isVerified = true;
+    user.verifyToken = undefined;
+
+    await user.save();
+
+    res.json({ message: "Email verified successfully" });
+  } catch (err) {
+    console.log("VERIFY ERROR:", err);
+    res.status(500).json({ message: "Verification failed" });
+  }
+};
+
+//
+// ✅ LOGIN USER
+//
+exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ message: "User not found" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+    // ⭐ BLOCK LOGIN IF NOT VERIFIED
+    if (!user.isVerified) {
+      return res.status(400).json({
+        message: "Please verify your email before logging in",
+      });
     }
 
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const match = await bcrypt.compare(password, user.password);
+
+    if (!match) {
+      return res.status(400).json({ message: "Invalid password" });
+    }
 
     res.json({
-      message: "Login successful",
-      token,
+      token: generateToken(user._id),
+      name: user.name,
+      email: user.email,
     });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    console.log("LOGIN ERROR:", err);
+    res.status(500).json({ message: "Server Error" });
   }
 };
-
-
-module.exports = { registerUser, loginUser };
-

@@ -38,7 +38,7 @@ router.post("/run", protect, async (req, res) => {
       command = `python ${filePath}`;
     }
 
-    exec(command, (error, stdout, stderr) => {
+    exec(command, { timeout: 5000 }, (error, stdout, stderr) => {
       // delete file after run
       fs.unlinkSync(filePath);
 
