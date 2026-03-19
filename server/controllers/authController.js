@@ -18,17 +18,19 @@ exports.registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // check existing user
     let user = await User.findOne({ email });
 
-    // ⭐ If user exists but NOT verified → resend mail
+    // 🔥 CASE 1: User exists but NOT verified → resend email
     if (user && !user.isVerified) {
       const verifyToken = crypto.randomBytes(32).toString("hex");
 
       user.verifyToken = verifyToken;
+      user.verifyTokenExpiry = Date.now() + 60 * 60 * 1000; // 1 hour
       await user.save();
 
-      await sendMail(user.email, verifyToken);
+      const verifyLink = `${process.env.FRONTEND_URL}/verify/${verifyToken}`;
+
+      await sendMail(user.email, verifyLink);
 
       return res.status(200).json({
         message:
@@ -36,14 +38,15 @@ exports.registerUser = async (req, res) => {
       });
     }
 
-    // if user already verified
+    // 🔥 CASE 2: User already verified
     if (user) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({
+        message: "User already exists. Please login.",
+      });
     }
 
-    // create new user
+    // 🔥 CREATE NEW USER
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const verifyToken = crypto.randomBytes(32).toString("hex");
 
     user = await User.create({
@@ -51,14 +54,17 @@ exports.registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       verifyToken,
+      verifyTokenExpiry: Date.now() + 60 * 60 * 1000, // 1 hour
       isVerified: false,
     });
 
-    // send verification email
-    await sendMail(email, verifyToken);
+    const verifyLink = `${process.env.FRONTEND_URL}/verify/${verifyToken}`;
+
+    await sendMail(email, verifyLink);
 
     res.status(201).json({
-      message: "Registered successfully. Please verify your email.",
+      message:
+        "Registered successfully. Please verify your email before logging in.",
     });
   } catch (err) {
     console.log("REGISTER ERROR:", err);
@@ -73,7 +79,10 @@ exports.verifyEmail = async (req, res) => {
   try {
     const { token } = req.params;
 
-    const user = await User.findOne({ verifyToken: token });
+    const user = await User.findOne({
+      verifyToken: token,
+      verifyTokenExpiry: { $gt: Date.now() },
+    });
 
     if (!user) {
       return res.status(400).json({
@@ -82,7 +91,8 @@ exports.verifyEmail = async (req, res) => {
     }
 
     user.isVerified = true;
-    user.verifyToken = undefined;
+    user.verifyToken = null;
+    user.verifyTokenExpiry = null;
 
     await user.save();
 
@@ -106,7 +116,7 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: "User not found" });
     }
 
-    // ⭐ BLOCK LOGIN IF NOT VERIFIED
+    // 🔒 BLOCK IF NOT VERIFIED
     if (!user.isVerified) {
       return res.status(400).json({
         message: "Please verify your email before logging in",

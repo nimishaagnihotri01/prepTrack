@@ -74,7 +74,7 @@ export default function Dashboard() {
       ? 0
       : Math.round((completed / learning.length) * 100);
 
-  // ⭐ WEEKLY ANALYTICS
+  // ⭐ WEEKLY ANALYTICS (FIXED)
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   const weeklyCount = {
@@ -87,16 +87,34 @@ export default function Dashboard() {
     Sun: 0,
   };
 
+  const now = new Date();
+
+  // ✅ Correct Monday calculation
+  const day = now.getDay();
+  const diff = now.getDate() - (day === 0 ? 6 : day - 1);
+
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(diff);
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  // 🔥 FILTER + COUNT
   learning.forEach((item) => {
-  if (!item.completedAt) return; // ⭐ only completed tasks
+    if (!item.completedAt) return;
 
-  const date = new Date(item.completedAt);
-  const dayIndex = date.getDay();
-  const mappedDay = days[dayIndex === 0 ? 6 : dayIndex - 1];
+    const date = new Date(item.completedAt);
 
-  weeklyCount[mappedDay]++;
-});
+    // ✅ ONLY CURRENT WEEK DATA
+    if (date < startOfWeek || date > endOfWeek) return;
 
+    const dayIndex = date.getDay();
+    const mappedDay = days[dayIndex === 0 ? 6 : dayIndex - 1];
+
+    weeklyCount[mappedDay]++;
+  });
 
   const chartData = {
     labels: days,
@@ -120,8 +138,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col min-h-screen">
-
-      {/* ⭐ TOP NAVBAR */}
+      {/* ⭐ NAVBAR */}
       <div className="flex justify-between items-center px-10 py-5 bg-white/60 backdrop-blur-md border-b shadow-sm">
         <h2 className="text-2xl font-bold text-[#0f2a44]">
           Dashboard
@@ -150,7 +167,6 @@ export default function Dashboard() {
 
       {/* ⭐ CONTENT */}
       <div className="p-10 space-y-10">
-
         {/* HERO */}
         <div className="bg-gradient-to-r from-[#0f2a44] to-[#1f4e79] text-white p-10 rounded-3xl shadow-lg">
           <h3 className="text-3xl font-semibold mb-2">
@@ -161,9 +177,8 @@ export default function Dashboard() {
           <p>Your real weekly learning analytics.</p>
         </div>
 
-        {/* ANALYTICS CARDS */}
+        {/* CARDS */}
         <div className="grid grid-cols-3 gap-8">
-
           <div className="bg-white p-8 rounded-2xl shadow text-center">
             <p className="text-gray-500">Progress</p>
             <h3 className="text-4xl font-bold text-[#1f4e79]">
@@ -184,10 +199,9 @@ export default function Dashboard() {
               {completed}
             </h3>
           </div>
-
         </div>
 
-        {/* ⭐ FULL WIDTH CURVED CHART */}
+        {/* ⭐ CHART */}
         <div className="bg-white p-6 rounded-2xl shadow w-full">
           <h4 className="text-[#0f2a44] font-semibold mb-4">
             Weekly Progress (Mon-Sun)
@@ -197,7 +211,6 @@ export default function Dashboard() {
             <Line data={chartData} options={chartOptions} />
           </div>
         </div>
-
       </div>
     </div>
   );

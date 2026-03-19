@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 
-const sendMail = async (email, token) => {
+const sendMail = async (email, link) => {
   try {
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -10,8 +10,6 @@ const sendMail = async (email, token) => {
       },
     });
 
-    const verifyURL = `http://localhost:5173/verify/${token}`;
-
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
@@ -19,7 +17,7 @@ const sendMail = async (email, token) => {
       html: `
         <h2>Welcome to PrepTrack 🚀</h2>
         <p>Click below to verify your email:</p>
-        <a href="${verifyURL}" style="color:blue;font-size:18px;">
+        <a href="${link}" style="color:blue;font-size:18px;">
           Verify Account
         </a>
       `,
