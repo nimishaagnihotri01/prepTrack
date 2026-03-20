@@ -16,34 +16,22 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    setLoading(true);
-    setError("");
-    setMessage("");
+  console.log("🔥 Register clicked"); // ADD THIS
 
-    try {
-      await API.post("/api/auth/register", {
-  name,
-  email,
-  password,
-});
+  try {
+    const res = await API.post("/api/auth/register", {
+      name,
+      email,
+      password,
+    });
 
-      // ✅ SUCCESS MESSAGE
-      setMessage(
-        "📧 Registration successful! Please verify your email before logging in."
-      );
-
-      // 🔁 Redirect after 2 sec
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 2000);
-    } catch (err) {
-      setError(err.response?.data?.message || "Registration failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+    console.log("SUCCESS", res.data);
+  } catch (err) {
+    console.log("ERROR", err);
+  }
+};
 
   return (
     <div
