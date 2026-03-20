@@ -1,7 +1,7 @@
 import { useState } from "react";
-import API from "../api/axios";
-import bg from "../assets/bg.jpg";
+import axios from "axios";
 import { Link } from "react-router-dom";
+import bg from "../assets/bg.jpg";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
@@ -9,7 +9,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // ✅ NEW STATES
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +19,13 @@ export default function Login() {
     setError("");
 
     try {
-      const res = await API.post("/api/auth/login", { email, password });
+      const res = await axios.post(
+        "https://preptrack-6bxk.onrender.com/api/auth/login",
+        {
+          email,
+          password,
+        }
+      );
 
       localStorage.setItem("token", res.data.token);
 
@@ -36,22 +41,17 @@ export default function Login() {
 
   return (
     <div
-      className="h-screen w-full flex items-center justify-center bg-cover bg-center"
+      className="h-screen flex items-center justify-center bg-cover bg-center"
       style={{ backgroundImage: `url(${bg})` }}
     >
-      <div className="backdrop-blur-md bg-white/90 border border-white shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-3xl p-12 w-[450px] text-gray-800 transition-all duration-300">
+      <div className="bg-white p-10 rounded-xl shadow-lg w-[400px]">
 
-        <h1 className="text-4xl font-bold text-center text-[#0f2a44] mb-2">
+        <h1 className="text-3xl font-bold text-center mb-6">
           PrepTrack
         </h1>
 
-        <p className="text-center text-[#274c77] mb-8 text-sm">
-          Learn smarter, grow faster 🚀
-        </p>
-
-        {/* ❌ ERROR MESSAGE */}
         {error && (
-          <p className="mb-4 text-red-700 bg-red-100 p-3 rounded-lg text-sm">
+          <p className="mb-4 text-red-700 bg-red-100 p-3 rounded">
             {error}
           </p>
         )}
@@ -59,55 +59,47 @@ export default function Login() {
         <form onSubmit={handleLogin}>
           <input
             type="email"
-            placeholder="Email Address"
-            className="w-full mb-5 p-4 rounded-xl bg-white border border-blue-200 focus:ring-2 focus:ring-blue-400 outline-none transition"
+            placeholder="Email"
+            className="w-full mb-4 p-3 border rounded"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
 
-          <div className="relative w-full mb-6">
+          <div className="relative mb-4">
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Password"
-              className="w-full p-4 pr-12 rounded-xl border border-blue-200 text-[#0f2a44] focus:ring-2 focus:ring-blue-400 outline-none transition"
+              className="w-full p-3 border rounded"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#0f2a44] opacity-70 hover:opacity-100"
+              className="absolute right-3 top-3"
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
 
-          {/* 🔥 BUTTON */}
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-4 rounded-xl font-semibold text-white transition ${
-              loading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-[#0f2a44] to-[#0f2a42] hover:scale-[1.03]"
-            }`}
+            className="w-full py-3 bg-[#0f2a44] text-white rounded"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
-
-          <p className="text-center text-sm mt-6 text-[#274c77]">
-            Don’t have an account?{" "}
-            <Link
-              to="/register"
-              className="font-semibold text-[#0f2a44] hover:underline"
-            >
-              Create one
-            </Link>
-          </p>
         </form>
+
+        <p className="text-center mt-4">
+          Don’t have an account?{" "}
+          <Link to="/register" className="text-blue-600">
+            Create one
+          </Link>
+        </p>
+
       </div>
     </div>
   );
