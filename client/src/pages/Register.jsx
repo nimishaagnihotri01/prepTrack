@@ -23,7 +23,11 @@ export default function Register() {
     setMessage("");
 
     try {
-      await API.post("/auth/register", { name, email, password });
+      await API.post("/api/auth/register", {
+  name,
+  email,
+  password,
+});
 
       // ✅ SUCCESS MESSAGE
       setMessage(
