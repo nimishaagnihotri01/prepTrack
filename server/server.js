@@ -15,9 +15,11 @@ const app = express();
 connectDB();
 
 app.use(cors({
-  origin: "https://prep-track-six.vercel.app",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
+  origin: [
+    "http://localhost:5173",
+    "https://prep-track-six.vercel.app"
+  ],
+  credentials: true,
 }));
 app.use(express.json());
 

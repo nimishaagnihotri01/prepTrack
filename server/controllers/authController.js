@@ -28,9 +28,8 @@ exports.registerUser = async (req, res) => {
       user.verifyTokenExpiry = Date.now() + 60 * 60 * 1000; // 1 hour
       await user.save();
 
-      const verifyLink = `${process.env.FRONTEND_URL}/verify/${verifyToken}`;
-
-      await sendMail(user.email, verifyLink);
+      // ✅ SEND TOKEN (NOT LINK)
+      await sendMail(user.email, verifyToken);
 
       return res.status(200).json({
         message:
@@ -58,9 +57,8 @@ exports.registerUser = async (req, res) => {
       isVerified: false,
     });
 
-    const verifyLink = `${process.env.FRONTEND_URL}/verify/${verifyToken}`;
-
-    await sendMail(email, verifyLink);
+    // ✅ SEND TOKEN (NOT LINK)
+    await sendMail(email, verifyToken);
 
     res.status(201).json({
       message:

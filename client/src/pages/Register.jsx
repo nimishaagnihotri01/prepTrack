@@ -1,9 +1,8 @@
 import { useState } from "react";
-import axios from "axios";
 import { Link } from "react-router-dom";
 import bg from "../assets/bg.jpg";
 import { Eye, EyeOff } from "lucide-react";
-
+import API from "../api/axios";
 export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -14,36 +13,24 @@ export default function Register() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
 
-    setLoading(true);
-    setError("");
-    setMessage("");
+const handleRegister = async (e) => {
+  e.preventDefault();
 
-    try {
-      const res = await axios.post(
-        "https://preptrack-6bxk.onrender.com/api/auth/register",
-        {
-          name,
-          email,
-          password,
-        }
-      );
+  try {
+    const res = await API.post("/auth/register", {
+      name,
+      email,
+      password,
+    });
 
-      setMessage(
-        res.data.message ||
-          "Registered successfully! Please verify your email."
-      );
-
-    } catch (err) {
-      setError(
-        err.response?.data?.message || "Registration failed. Try again."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    console.log(res.data);
+    alert("Registered!");
+  } catch (err) {
+    console.log(err);
+    alert("Error");
+  }
+};
 
   return (
     <div

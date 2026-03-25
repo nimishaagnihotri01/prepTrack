@@ -1,6 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
 import { Link } from "react-router-dom";
+import API from "../api/axios";
 import bg from "../assets/bg.jpg";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -19,18 +19,19 @@ export default function Login() {
     setError("");
 
     try {
-      const res = await axios.post(
-        "https://preptrack-6bxk.onrender.com/api/auth/login",
-        {
-          email,
-          password,
-        }
-      );
+      const res = await API.post("/auth/login", {
+        email,
+        password,
+      });
+
+      console.log("LOGIN SUCCESS:", res.data);
 
       localStorage.setItem("token", res.data.token);
 
       window.location.href = "/dashboard";
     } catch (err) {
+      console.log("LOGIN ERROR:", err);
+
       setError(
         err.response?.data?.message || "Login failed. Try again."
       );
@@ -41,15 +42,16 @@ export default function Login() {
 
   return (
     <div
-      className="h-screen flex items-center justify-center bg-cover bg-center"
+      className="h-screen w-full flex items-center justify-center bg-cover bg-center"
       style={{ backgroundImage: `url(${bg})` }}
     >
-      <div className="bg-white p-10 rounded-xl shadow-lg w-[400px]">
+      <div className="backdrop-blur-md bg-white/90 border shadow-lg rounded-3xl p-12 w-[450px]">
 
         <h1 className="text-3xl font-bold text-center mb-6">
           PrepTrack
         </h1>
 
+        {/* ERROR MESSAGE */}
         {error && (
           <p className="mb-4 text-red-700 bg-red-100 p-3 rounded">
             {error}
@@ -60,7 +62,7 @@ export default function Login() {
           <input
             type="email"
             placeholder="Email"
-            className="w-full mb-4 p-3 border rounded"
+            className="w-full mb-4 p-3 border rounded-lg"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -70,11 +72,12 @@ export default function Login() {
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Password"
-              className="w-full p-3 border rounded"
+              className="w-full p-3 border rounded-lg"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -87,7 +90,11 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-[#0f2a44] text-white rounded"
+            className={`w-full py-3 rounded-lg text-white ${
+              loading
+                ? "bg-gray-400"
+                : "bg-[#0f2a44]"
+            }`}
           >
             {loading ? "Logging in..." : "Login"}
           </button>
