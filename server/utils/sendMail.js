@@ -1,23 +1,13 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendMail = async (email, token) => {
   try {
-    // 🔥 CREATE TEST ACCOUNT
-    const testAccount = await nodemailer.createTestAccount();
-
-    const transporter = nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      port: 587,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-    });
-
     const verifyURL = `${process.env.FRONTEND_URL}/verify/${token}`;
 
-    const info = await transporter.sendMail({
-      from: '"PrepTrack" <no-reply@preptrack.com>',
+    const response = await resend.emails.send({
+      from: "onboarding@resend.dev", // default working sender
       to: email,
       subject: "Verify your PrepTrack Account",
       html: `
@@ -27,7 +17,7 @@ const sendMail = async (email, token) => {
       `,
     });
 
-    console.log("Preview URL:", nodemailer.getTestMessageUrl(info));
+    console.log("Email sent:", response);
   } catch (err) {
     console.log("MAIL ERROR:", err);
   }
