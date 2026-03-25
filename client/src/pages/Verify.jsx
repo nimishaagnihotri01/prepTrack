@@ -1,42 +1,27 @@
-import { useEffect, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import API from "../api/axios";
 
 export default function Verify() {
   const { token } = useParams();
-  const navigate = useNavigate();
-
-  const called = useRef(false); // ⭐ FIX
-  const [message, setMessage] = useState("Verifying account...");
+  const [message, setMessage] = useState("Verifying...");
 
   useEffect(() => {
-    if (!token || called.current) return;
-
-    called.current = true; // prevent double call
-
-    const verifyAccount = async () => {
+    const verifyUser = async () => {
       try {
-        await API.get(`/auth/verify/${token}`);
-        setMessage("✅ Account verified successfully!");
-
-        setTimeout(() => {
-          navigate("/");
-        }, 2000);
+        const res = await API.get(`/api/auth/verify/${token}`);
+        setMessage(res.data.message);
       } catch (err) {
-        setMessage(
-          err.response?.data?.message || "❌ Verification failed"
-        );
+        setMessage("Verification failed or expired.");
       }
     };
 
-    verifyAccount();
-  }, [token, navigate]);
+    verifyUser();
+  }, [token]);
 
   return (
     <div className="h-screen flex items-center justify-center">
-      <h2 className="text-xl font-semibold text-[#0f2a44]">
-        {message}
-      </h2>
+      <h1 className="text-2xl font-bold">{message}</h1>
     </div>
   );
 }

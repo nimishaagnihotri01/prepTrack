@@ -20,24 +20,23 @@ exports.registerUser = async (req, res) => {
 
     let user = await User.findOne({ email });
 
-    // 🔥 CASE 1: User exists but NOT verified → resend email
+    // 🔥 CASE 1: User exists but NOT verified
     if (user && !user.isVerified) {
       const verifyToken = crypto.randomBytes(32).toString("hex");
 
       user.verifyToken = verifyToken;
-      user.verifyTokenExpiry = Date.now() + 60 * 60 * 1000; // 1 hour
+      user.verifyTokenExpiry = Date.now() + 60 * 60 * 1000;
       await user.save();
 
-      // ✅ SEND TOKEN (NOT LINK)
-      await sendMail(user.email, verifyToken);
+      const verifyURL = `${process.env.FRONTEND_URL}/verify/${verifyToken}`;
 
       return res.status(200).json({
-        message:
-          "Account exists but not verified. Verification email resent.",
+        message: "Account exists but not verified.",
+        verifyURL,
       });
     }
 
-    // 🔥 CASE 2: User already verified
+    // 🔥 CASE 2: Already exists
     if (user) {
       return res.status(400).json({
         message: "User already exists. Please login.",
@@ -53,16 +52,15 @@ exports.registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       verifyToken,
-      verifyTokenExpiry: Date.now() + 60 * 60 * 1000, // 1 hour
+      verifyTokenExpiry: Date.now() + 60 * 60 * 1000,
       isVerified: false,
     });
 
-    // ✅ SEND TOKEN (NOT LINK)
-    await sendMail(email, verifyToken);
+    const verifyURL = `${process.env.FRONTEND_URL}/verify/${verifyToken}`;
 
     res.status(201).json({
-      message:
-        "Registered successfully. Please verify your email before logging in.",
+      message: "Registered successfully. Please verify your account.",
+      verifyURL,
     });
   } catch (err) {
     console.log("REGISTER ERROR:", err);

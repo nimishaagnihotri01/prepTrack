@@ -24,11 +24,15 @@ const handleRegister = async (e) => {
       password,
     });
 
-    console.log(res.data);
-    alert("Registered!");
+    alert(res.data.message);
+
+    // 🔥 OPEN VERIFY LINK
+    if (res.data.verifyURL) {
+      window.open(res.data.verifyURL, "_blank");
+    }
+
   } catch (err) {
-    console.log(err);
-    alert("Error");
+    alert(err.response?.data?.message || "Register failed");
   }
 };
 
