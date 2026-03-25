@@ -14,13 +14,17 @@ const connectDB = require("./config/db");
 const app = express();
 connectDB();
 
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://prep-track-six.vercel.app"
-  ],
-  credentials: true,
-}));
+const cors = require("cors");
+
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://prep-track-iota.vercel.app",
+    ],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.use("/api/test", testroutes);
