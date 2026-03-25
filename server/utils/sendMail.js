@@ -2,31 +2,32 @@ const nodemailer = require("nodemailer");
 
 const sendMail = async (email, token) => {
   try {
+    // 🔥 CREATE TEST ACCOUNT
+    const testAccount = await nodemailer.createTestAccount();
+
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.ethereal.email",
+      port: 587,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: testAccount.user,
+        pass: testAccount.pass,
       },
     });
 
-    // ✅ CREATE LINK HERE (IMPORTANT)
     const verifyURL = `${process.env.FRONTEND_URL}/verify/${token}`;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    const info = await transporter.sendMail({
+      from: '"PrepTrack" <no-reply@preptrack.com>',
       to: email,
       subject: "Verify your PrepTrack Account",
       html: `
         <h2>Welcome to PrepTrack 🚀</h2>
         <p>Click below to verify your email:</p>
-        <a href="${verifyURL}" style="color:blue;font-size:18px;">
-          Verify Account
-        </a>
+        <a href="${verifyURL}">Verify Account</a>
       `,
     });
 
-    console.log("Email sent successfully");
+    console.log("Preview URL:", nodemailer.getTestMessageUrl(info));
   } catch (err) {
     console.log("MAIL ERROR:", err);
   }
