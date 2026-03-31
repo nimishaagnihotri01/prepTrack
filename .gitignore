@@ -4,3 +4,4 @@ dist/
 build/
 server/temp/
 server/config/serviceAccountKey.json
+serviceAccount.json
