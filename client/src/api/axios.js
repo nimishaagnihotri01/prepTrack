@@ -1,7 +1,10 @@
 import axios from "axios";
 
 const configuredBaseUrl = import.meta.env.VITE_API_URL;
-const fallbackBaseUrl = import.meta.env.DEV ? "http://localhost:5000" : "";
+const deployedBackendUrl = "https://preptrack-mgpy.onrender.com";
+const fallbackBaseUrl = import.meta.env.DEV
+  ? "http://localhost:5000"
+  : deployedBackendUrl;
 
 const API = axios.create({
   baseURL: (configuredBaseUrl || fallbackBaseUrl).replace(/\/$/, ""),
