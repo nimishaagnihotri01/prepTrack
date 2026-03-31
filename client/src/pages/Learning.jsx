@@ -1,94 +1,89 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { CheckCircle2, Code2, Trash2 } from "lucide-react";
 import API from "../api/axios";
-import { Trash2, CheckCircle2, Code2 } from "lucide-react";
-import CodingArena from "../components/CodingArena";
+
+const CodingArena = lazy(() => import("../components/CodingArena"));
 
 export default function Learning() {
   const [title, setTitle] = useState("");
   const [difficulty, setDifficulty] = useState("Easy");
   const [learning, setLearning] = useState([]);
-
-  // ⭐ CODING ARENA STATES
   const [openArena, setOpenArena] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
 
-  // 🔥 FETCH ITEMS
-  const fetchLearning = async () => {
-    try {
-      const token = localStorage.getItem("token");
-
-      const res = await API.get("/learning", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setLearning(res.data);
-    } catch (err) {
-      console.log("Fetch failed");
-    }
-  };
-
   useEffect(() => {
-    fetchLearning();
+    let ignore = false;
+
+    const loadLearning = async () => {
+      try {
+        const res = await API.get("/api/learning");
+
+        if (!ignore) {
+          setLearning(res.data);
+        }
+      } catch (error) {
+        console.log("Fetch failed", error);
+      }
+    };
+
+    void loadLearning();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
-  // ➕ ADD TASK
-  const addLearning = async (e) => {
-    e.preventDefault();
-    if (!title.trim()) return;
+  const addLearning = async (event) => {
+    event.preventDefault();
 
-    try {
-      const token = localStorage.getItem("token");
-
-      const res = await API.post(
-        "/learning",
-        { title, difficulty },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setLearning([res.data, ...learning]);
-      setTitle("");
-    } catch (err) {
-      console.log("Add failed");
+    if (!title.trim()) {
+      return;
     }
-  };
 
-  // ❌ DELETE
-  const deleteLearning = async (id) => {
     try {
-      const token = localStorage.getItem("token");
-
-      await API.delete(`/learning/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await API.post("/api/learning", {
+        title,
+        difficulty,
       });
 
-      setLearning(learning.filter((item) => item._id !== id));
-    } catch (err) {
-      console.log("Delete failed");
+      setLearning((current) => [res.data, ...current]);
+      setTitle("");
+      setDifficulty("Easy");
+    } catch (error) {
+      console.log("Add failed", error);
     }
   };
 
-  // ⭐ TOGGLE STATUS
+  const deleteLearning = async (id) => {
+    try {
+      await API.delete(`/api/learning/${id}`);
+      setLearning((current) =>
+        current.filter((item) => item._id !== id)
+      );
+    } catch (error) {
+      console.log("Delete failed", error);
+    }
+  };
+
   const toggleStatus = async (id) => {
     try {
-      const token = localStorage.getItem("token");
+      const res = await API.patch(`/api/learning/${id}`);
 
-      const res = await API.patch(
-        `/learning/${id}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setLearning(
-        learning.map((item) =>
+      setLearning((current) =>
+        current.map((item) =>
           item._id === id ? res.data : item
         )
       );
-    } catch (err) {
-      console.log("Toggle failed");
+    } catch (error) {
+      console.log("Toggle failed", error);
     }
   };
 
-  // 🎨 Difficulty Badge
+  const closeArena = () => {
+    setOpenArena(false);
+    setSelectedTask(null);
+  };
+
   const getBadge = (level) => {
     if (level === "Easy") return "bg-green-100 text-green-600";
     if (level === "Medium") return "bg-yellow-100 text-yellow-600";
@@ -96,7 +91,6 @@ export default function Learning() {
     return "bg-gray-100 text-gray-500";
   };
 
-  // 📊 PROGRESS
   const completed = learning.filter(
     (item) => item.status === "Completed"
   ).length;
@@ -108,13 +102,10 @@ export default function Learning() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#eef3f9] to-[#dde6f1] p-10">
-
-      {/* HEADER */}
       <h1 className="text-3xl font-bold text-[#0f2a44] mb-8">
-        My Learning 🚀
+        My Learning
       </h1>
 
-      {/* ⭐ PROGRESS CARD */}
       <div className="bg-white p-6 rounded-2xl shadow mb-10">
         <div className="flex justify-between mb-3">
           <p className="font-semibold text-[#0f2a44]">
@@ -133,38 +124,36 @@ export default function Learning() {
         </div>
       </div>
 
-      {/* ➕ ADD FORM */}
       <form
         onSubmit={addLearning}
-        className="bg-white p-6 rounded-2xl shadow mb-10 flex gap-4 items-center"
+        className="bg-white p-6 rounded-2xl shadow mb-10 flex gap-4 items-center flex-col md:flex-row"
       >
         <input
           type="text"
           placeholder="Add Topic..."
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="flex-1 p-3 border rounded-xl"
+          onChange={(event) => setTitle(event.target.value)}
+          className="flex-1 p-3 border rounded-xl w-full"
         />
 
         <select
           value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value)}
-          className="p-3 border rounded-xl"
+          onChange={(event) => setDifficulty(event.target.value)}
+          className="p-3 border rounded-xl w-full md:w-auto"
         >
           <option>Easy</option>
           <option>Medium</option>
           <option>Hard</option>
         </select>
 
-        <button className="bg-gradient-to-r from-[#0f2a44] to-[#1f4e79] text-white px-6 py-3 rounded-xl hover:scale-105 transition">
+        <button className="bg-gradient-to-r from-[#0f2a44] to-[#1f4e79] text-white px-6 py-3 rounded-xl w-full md:w-auto">
           Add
         </button>
       </form>
 
-      {/* 📋 TASK LIST */}
       {learning.length === 0 ? (
         <div className="bg-white p-10 rounded-2xl shadow text-center text-gray-500">
-          No topics yet — start building your learning journey ✨
+          No topics yet - start building your learning journey.
         </div>
       ) : (
         <div className="grid gap-4">
@@ -174,23 +163,21 @@ export default function Learning() {
             return (
               <div
                 key={item._id}
-                className="bg-white/90 backdrop-blur-lg p-5 rounded-xl shadow flex justify-between items-center hover:shadow-xl hover:-translate-y-1 transition"
+                className="bg-white p-5 rounded-xl shadow flex justify-between items-center gap-4"
               >
-                <div className="flex items-center gap-4">
-
-                  {/* CHECK */}
+                <div className="flex items-center gap-4 min-w-0">
                   <CheckCircle2
-                    onClick={() => toggleStatus(item._id)}
-                    className={`cursor-pointer ${
+                    onClick={() => void toggleStatus(item._id)}
+                    className={`cursor-pointer shrink-0 ${
                       item.status === "Completed"
-                        ? "text-green-500 scale-110"
+                        ? "text-green-500"
                         : "text-gray-300"
                     }`}
                   />
 
-                  <div>
+                  <div className="min-w-0">
                     <h3
-                      className={`font-semibold text-[#0f2a44] ${
+                      className={`font-semibold truncate ${
                         item.status === "Completed"
                           ? "line-through opacity-50"
                           : ""
@@ -200,33 +187,26 @@ export default function Learning() {
                     </h3>
 
                     <span
-                      className={`text-xs px-3 py-1 rounded-full ${getBadge(
-                        level
-                      )}`}
+                      className={`text-xs px-3 py-1 rounded-full ${getBadge(level)}`}
                     >
                       {level}
                     </span>
                   </div>
                 </div>
 
-                {/* ACTION BUTTONS */}
-                <div className="flex items-center gap-4">
-
-                  {/* ⭐ CODE BUTTON */}
+                <div className="flex gap-4 shrink-0">
                   <Code2
                     onClick={() => {
                       setSelectedTask(item);
                       setOpenArena(true);
                     }}
-                    className="cursor-pointer text-[#1f4e79] hover:scale-110"
+                    className="cursor-pointer"
                   />
 
-                  {/* DELETE */}
                   <Trash2
-                    onClick={() => deleteLearning(item._id)}
-                    className="cursor-pointer text-red-500 hover:scale-110"
+                    onClick={() => void deleteLearning(item._id)}
+                    className="cursor-pointer text-red-500"
                   />
-
                 </div>
               </div>
             );
@@ -234,26 +214,29 @@ export default function Learning() {
         </div>
       )}
 
-      {/* ⭐ CODING ARENA MODAL */}
-      {openArena && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center">
-
-          <div className="bg-white w-[90%] max-w-5xl rounded-2xl shadow-2xl p-6 relative">
-
+      {openArena && selectedTask && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white w-[90%] max-w-5xl rounded-2xl p-6 relative">
             <button
-              onClick={() => setOpenArena(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-red-500"
+              onClick={closeArena}
+              className="absolute top-4 right-4"
             >
-              ✕
+              X
             </button>
 
-            <h2 className="text-xl font-bold text-[#0f2a44] mb-4">
-              Coding Arena — {selectedTask?.title}
+            <h2 className="text-xl font-bold mb-4">
+              Coding Arena - {selectedTask.title}
             </h2>
 
-            <CodingArena taskId={selectedTask?._id} />
-
-
+            <Suspense
+              fallback={
+                <div className="h-[350px] rounded-xl border flex items-center justify-center">
+                  Loading editor...
+                </div>
+              }
+            >
+              <CodingArena taskId={selectedTask._id} />
+            </Suspense>
           </div>
         </div>
       )}

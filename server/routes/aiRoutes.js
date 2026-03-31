@@ -4,51 +4,76 @@ const Groq = require("groq-sdk");
 const protect = require("../middleware/authMiddleware");
 const Learning = require("../models/Learning");
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+const getGroqClient = () =>
+  new Groq({
+    apiKey: process.env.GROQ_API_KEY,
+  });
 
-// ⭐ SMART AI CHAT
 router.post("/chat", protect, async (req, res) => {
   try {
-    const { message } = req.body;
+    const message = req.body.message?.trim();
 
-    // 🔥 FETCH USER LEARNING DATA
+    if (!message) {
+      return res.status(400).json({ reply: "Message is required" });
+    }
+
+    if (!process.env.GROQ_API_KEY) {
+      return res
+        .status(503)
+        .json({ reply: "AI service is not configured" });
+    }
+
     const learning = await Learning.find({
-      user: req.user._id,
-    });
+      user: req.user.email,
+    })
+      .select("difficulty status")
+      .lean();
 
-    const total = learning.length;
-    const completed = learning.filter(
-      (item) => item.status === "Completed"
-    ).length;
+    const stats = learning.reduce(
+      (accumulator, item) => {
+        accumulator.total += 1;
 
-    const easy = learning.filter(
-      (i) => i.difficulty === "Easy"
-    ).length;
+        if (item.status === "Completed") {
+          accumulator.completed += 1;
+        }
 
-    const medium = learning.filter(
-      (i) => i.difficulty === "Medium"
-    ).length;
+        if (item.difficulty === "Easy") {
+          accumulator.easy += 1;
+        }
 
-    const hard = learning.filter(
-      (i) => i.difficulty === "Hard"
-    ).length;
+        if (item.difficulty === "Medium") {
+          accumulator.medium += 1;
+        }
 
-    // ⭐ CREATE SMART CONTEXT FOR AI
+        if (item.difficulty === "Hard") {
+          accumulator.hard += 1;
+        }
+
+        return accumulator;
+      },
+      {
+        total: 0,
+        completed: 0,
+        easy: 0,
+        medium: 0,
+        hard: 0,
+      }
+    );
+
     const systemContext = `
 You are PrepTrack AI Assistant.
 
 User Stats:
-Total Topics: ${total}
-Completed Topics: ${completed}
-Easy: ${easy}
-Medium: ${medium}
-Hard: ${hard}
+Total Topics: ${stats.total}
+Completed Topics: ${stats.completed}
+Easy: ${stats.easy}
+Medium: ${stats.medium}
+Hard: ${stats.hard}
 
 Give personalized study advice based on this data.
 `;
 
+    const groq = getGroqClient();
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [

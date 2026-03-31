@@ -1,37 +1,30 @@
-const jwt = require("jsonwebtoken");
-const User = require("../models/user"); // make sure path + filename correct
+const admin = require("../config/firebaseAdmin");
 
 const protect = async (req, res, next) => {
-  let token;
+  const authHeader = req.headers.authorization;
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    try {
-      token = req.headers.authorization.split(" ")[1];
-
-      // VERIFY TOKEN
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // 🔥 FETCH REAL USER FROM DATABASE
-      const user = await User.findById(decoded.id).select("-password");
-
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
-      }
-
-      req.user = user;
-
-      next();
-    } catch (error) {
-      console.log(error);
-      return res.status(401).json({ message: "Not authorized, token failed" });
-    }
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "No token provided" });
   }
 
-  if (!token) {
-    return res.status(401).json({ message: "Not authorized, no token" });
+  try {
+    const token = authHeader.split(" ")[1];
+    const decoded = await admin.auth().verifyIdToken(token);
+
+    if (!decoded.email) {
+      return res.status(401).json({ message: "Token is missing an email" });
+    }
+
+    req.user = {
+      uid: decoded.uid,
+      email: decoded.email.toLowerCase(),
+      name: decoded.name || decoded.email.split("@")[0],
+    };
+
+    return next();
+  } catch (error) {
+    console.log("VERIFY ERROR:", error.message);
+    return res.status(401).json({ message: "Invalid Firebase token" });
   }
 };
 

@@ -1,60 +1,64 @@
+import { Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import Learning from "./pages/Learning";
-import Profile from "./pages/Profile";
-import Verify from "./pages/Verify";
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Learning = lazy(() => import("./pages/Learning"));
+const Profile = lazy(() => import("./pages/Profile"));
+const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
+const MainLayout = lazy(() => import("./components/MainLayout"));
 
-import ProtectedRoute from "./components/ProtectedRoute";
-import MainLayout from "./components/MainLayout";
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#eef3f9] text-[#0f2a44]">
+      Loading...
+    </div>
+  );
+}
 
 export default function App() {
   return (
     <Router>
-      <Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-        {/* AUTH PAGES (NO SIDEBAR) */}
-        <Route path="/" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Dashboard />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
 
-        {/* ⭐ ALL DASHBOARD PAGES USE MAINLAYOUT */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Dashboard />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/learning"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Learning />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/learning"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Learning />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Profile />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/verify/:token" element={<Verify />} />
-
-      </Routes>
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Profile />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Suspense>
     </Router>
   );
 }

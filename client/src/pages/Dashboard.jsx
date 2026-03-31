@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
-import API from "../api/axios";
+import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
-
+import { signOut } from "firebase/auth";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
-  LineElement,
   CategoryScale,
+  Filler,
+  LineElement,
   LinearScale,
   PointElement,
   Tooltip,
-  Filler,
 } from "chart.js";
+import API from "../api/axios";
+import { auth } from "../firebase";
 
 ChartJS.register(
   LineElement,
@@ -23,48 +25,58 @@ ChartJS.register(
 );
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [openMenu, setOpenMenu] = useState(false);
   const [user, setUser] = useState(null);
   const [learning, setLearning] = useState([]);
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/";
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.log("LOGOUT ERROR:", error);
+    } finally {
+      localStorage.removeItem("token");
+      navigate("/", { replace: true });
+    }
   };
 
-  // 🔥 LOAD DATA
   useEffect(() => {
+    let ignore = false;
+
     const loadData = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const [profileRes, learningRes] = await Promise.all([
+          API.get("/api/user/profile"),
+          API.get("/api/learning"),
+        ]);
 
-        const profileRes = await API.get("/user/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const learningRes = await API.get("/learning", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        if (ignore) {
+          return;
+        }
 
         setUser(profileRes.data);
         setLearning(learningRes.data);
-      } catch (err) {
-        console.log("Dashboard fetch failed");
+      } catch (error) {
+        console.log("Dashboard fetch failed", error);
       }
     };
 
-    loadData();
+    void loadData();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
-  // 🌅 GREETING
   const getGreeting = () => {
     const hour = new Date().getHours();
+
     if (hour < 12) return "Good Morning";
     if (hour < 18) return "Good Afternoon";
     return "Good Evening";
   };
 
-  // 📊 PROGRESS
   const completed = learning.filter(
     (item) => item.status === "Completed"
   ).length;
@@ -74,9 +86,7 @@ export default function Dashboard() {
       ? 0
       : Math.round((completed / learning.length) * 100);
 
-  // ⭐ WEEKLY ANALYTICS (FIXED)
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
   const weeklyCount = {
     Mon: 0,
     Tue: 0,
@@ -88,11 +98,8 @@ export default function Dashboard() {
   };
 
   const now = new Date();
-
-  // ✅ Correct Monday calculation
   const day = now.getDay();
   const diff = now.getDate() - (day === 0 ? 6 : day - 1);
-
   const startOfWeek = new Date(now);
   startOfWeek.setDate(diff);
   startOfWeek.setHours(0, 0, 0, 0);
@@ -101,19 +108,20 @@ export default function Dashboard() {
   endOfWeek.setDate(startOfWeek.getDate() + 6);
   endOfWeek.setHours(23, 59, 59, 999);
 
-  // 🔥 FILTER + COUNT
   learning.forEach((item) => {
-    if (!item.completedAt) return;
+    if (!item.completedAt) {
+      return;
+    }
 
     const date = new Date(item.completedAt);
 
-    // ✅ ONLY CURRENT WEEK DATA
-    if (date < startOfWeek || date > endOfWeek) return;
+    if (date < startOfWeek || date > endOfWeek) {
+      return;
+    }
 
     const dayIndex = date.getDay();
     const mappedDay = days[dayIndex === 0 ? 6 : dayIndex - 1];
-
-    weeklyCount[mappedDay]++;
+    weeklyCount[mappedDay] += 1;
   });
 
   const chartData = {
@@ -121,7 +129,7 @@ export default function Dashboard() {
     datasets: [
       {
         label: "Weekly Progress",
-        data: days.map((d) => weeklyCount[d]),
+        data: days.map((dayLabel) => weeklyCount[dayLabel]),
         borderColor: "#1f4e79",
         backgroundColor: "rgba(31,78,121,0.15)",
         tension: 0.5,
@@ -138,7 +146,6 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* ⭐ NAVBAR */}
       <div className="flex justify-between items-center px-10 py-5 bg-white/60 backdrop-blur-md border-b shadow-sm">
         <h2 className="text-2xl font-bold text-[#0f2a44]">
           Dashboard
@@ -146,7 +153,7 @@ export default function Dashboard() {
 
         <div className="relative">
           <div
-            onClick={() => setOpenMenu(!openMenu)}
+            onClick={() => setOpenMenu((current) => !current)}
             className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0f2a44] to-[#1f4e79] text-white flex items-center justify-center cursor-pointer"
           >
             {user?.name?.charAt(0).toUpperCase() || "U"}
@@ -155,7 +162,7 @@ export default function Dashboard() {
           {openMenu && (
             <div className="absolute right-0 mt-3 bg-white rounded-xl shadow-lg p-4 w-40">
               <button
-                onClick={logout}
+                onClick={() => void logout()}
                 className="flex items-center gap-2 text-[#0f2a44] hover:text-red-500"
               >
                 <LogOut size={18} /> Logout
@@ -165,20 +172,17 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ⭐ CONTENT */}
       <div className="p-10 space-y-10">
-        {/* HERO */}
         <div className="bg-gradient-to-r from-[#0f2a44] to-[#1f4e79] text-white p-10 rounded-3xl shadow-lg">
           <h3 className="text-3xl font-semibold mb-2">
             {user
-              ? `${getGreeting()}, ${user.name} 👋`
+              ? `${getGreeting()}, ${user.name}!`
               : "Loading..."}
           </h3>
           <p>Your real weekly learning analytics.</p>
         </div>
 
-        {/* CARDS */}
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="bg-white p-8 rounded-2xl shadow text-center">
             <p className="text-gray-500">Progress</p>
             <h3 className="text-4xl font-bold text-[#1f4e79]">
@@ -201,7 +205,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ⭐ CHART */}
         <div className="bg-white p-6 rounded-2xl shadow w-full">
           <h4 className="text-[#0f2a44] font-semibold mb-4">
             Weekly Progress (Mon-Sun)

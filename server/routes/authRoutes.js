@@ -1,41 +1,34 @@
 const express = require("express");
 const router = express.Router();
-const crypto = require("crypto");
 
 const User = require("../models/user");
-const sendMail = require("../utils/sendMail");
+const protect = require("../middleware/authMiddleware");
 
-const { registerUser, loginUser } = require("../controllers/authController");
-
-// ✅ REGISTER
-router.post("/register", registerUser);
-
-// ✅ LOGIN
-router.post("/login", loginUser);
-
-// ⭐ VERIFY ACCOUNT ROUTE
-router.get("/verify/:token", async (req, res) => {
+router.post("/sync-user", protect, async (req, res) => {
   try {
-    const user = await User.findOne({
-      verifyToken: req.params.token,
-    });
+    const name =
+      req.body.name?.trim() || req.user.name?.trim() || "User";
 
-    if (!user) {
-      return res.status(400).json({
-        message: "Invalid or expired token",
-      });
-    }
+    const user = await User.findOneAndUpdate(
+      { email: req.user.email },
+      {
+        $set: {
+          email: req.user.email,
+          name,
+          isVerified: true,
+        },
+      },
+      {
+        returnDocument: "after",
+        upsert: true,
+        runValidators: true,
+      }
+    );
 
-    user.isVerified = true;
-    user.verifyToken = undefined;
-
-    await user.save();
-
-    res.json({ message: "Account verified successfully ✅" });
-
-  } catch (err) {
-    console.log("VERIFY ERROR:", err);
-    res.status(500).json({ message: "Server error" });
+    res.json(user);
+  } catch (error) {
+    console.log("SYNC USER ERROR:", error);
+    res.status(500).json({ message: "Error syncing user" });
   }
 });
 

@@ -1,39 +1,19 @@
-const express = require("express");
-const cors = require("cors");
-require("dotenv").config();
+const path = require("path");
+const dotenv = require("dotenv");
 
-const testroutes = require("./routes/testroutes");
-const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes");
-const learningRoutes = require("./routes/learningRoutes"); // ⭐ ADD THIS
-const aiRoutes = require("./routes/aiRoutes");
-const codeRoutes = require("./routes/codeRoutes");
-const workspaceRoutes = require("./routes/workspaceRoutes");
+dotenv.config({ path: path.join(__dirname, ".env") });
+
+const app = require("./app");
 const connectDB = require("./config/db");
 
-const app = express();
-connectDB();
-
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "https://prep-track-iota.vercel.app",
-    ],
-    credentials: true,
-  })
-);
-app.use(express.json());
-
-app.use("/api/test", testroutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/user", userRoutes);
-app.use("/api/learning", learningRoutes); // ⭐ ADD THIS
-app.use("/api/ai", aiRoutes);
-app.use("/api/code", codeRoutes);
-app.use("/api/workspace", workspaceRoutes);
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const startServer = async () => {
+  await connectDB();
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+};
+
+startServer();

@@ -1,75 +1,71 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import bg from "../assets/bg.jpg";
 import { Eye, EyeOff } from "lucide-react";
-import API from "../api/axios";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  signOut,
+  updateProfile,
+} from "firebase/auth";
+import bg from "../assets/bg.jpg";
+import { auth } from "../firebase";
+
 export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const handleRegister = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    setMessage("");
 
-const handleRegister = async (e) => {
-  e.preventDefault();
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
 
-  try {
-    const res = await API.post("/api/auth/register", {
-      name,
-      email,
-      password,
-    });
+      await updateProfile(userCredential.user, {
+        displayName: name.trim(),
+      });
 
-    alert(res.data.message);
+      await sendEmailVerification(userCredential.user);
+      await signOut(auth);
 
-    // 🔥 OPEN VERIFY LINK
-    if (res.data.verifyURL) {
-      window.open(res.data.verifyURL, "_blank");
+      setMessage("Verification email sent. Check your inbox/Spam.");
+      setPassword("");
+    } catch (error) {
+      console.log("REGISTER ERROR:", error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
-
-  } catch (err) {
-    alert(err.response?.data?.message || "Register failed");
-  }
-};
+  };
 
   return (
     <div
       className="h-screen flex items-center justify-center bg-cover bg-center"
       style={{ backgroundImage: `url(${bg})` }}
     >
-      <div className="flex bg-white/90 shadow-xl rounded-3xl overflow-hidden w-[800px]">
-
-        {/* LEFT */}
+      <div className="flex bg-white/90 shadow-xl rounded-3xl overflow-hidden w-[800px] max-w-[95vw]">
         <div className="w-1/2 bg-gradient-to-br from-[#0f2a44] to-[#1f4e79] text-white flex flex-col justify-center items-center p-10">
           <h2 className="text-4xl font-bold mb-3">PrepTrack</h2>
-          <p className="text-sm text-center">
-            Start your learning journey 🚀 <br />
-            Track progress, stay focused, and grow faster.
-          </p>
         </div>
 
-        {/* RIGHT */}
         <div className="w-1/2 p-12">
-
           <h1 className="text-3xl font-bold mb-6 text-[#0f2a44]">
             Create Account
           </h1>
 
-          {message && (
-            <p className="mb-4 text-green-700 bg-green-100 p-3 rounded">
-              {message}
-            </p>
-          )}
-
-          {error && (
-            <p className="mb-4 text-red-700 bg-red-100 p-3 rounded">
-              {error}
-            </p>
-          )}
+          {message && <p className="mb-4 text-green-600">{message}</p>}
+          {error && <p className="mb-4 text-red-600">{error}</p>}
 
           <form onSubmit={handleRegister}>
             <input
@@ -77,7 +73,7 @@ const handleRegister = async (e) => {
               placeholder="Name"
               className="w-full mb-4 p-3 border rounded-lg"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(event) => setName(event.target.value)}
               required
             />
 
@@ -86,7 +82,7 @@ const handleRegister = async (e) => {
               placeholder="Email"
               className="w-full mb-4 p-3 border rounded-lg"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               required
             />
 
@@ -96,34 +92,37 @@ const handleRegister = async (e) => {
                 placeholder="Password"
                 className="w-full p-3 border rounded-lg"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(event) => setPassword(event.target.value)}
                 required
               />
+
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() =>
+                  setShowPassword((current) => !current)
+                }
                 className="absolute right-3 top-3"
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                {showPassword ? (
+                  <EyeOff size={20} />
+                ) : (
+                  <Eye size={20} />
+                )}
               </button>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-lg text-white bg-[#0f2a44]"
+              className="w-full py-3 bg-[#0f2a44] text-white rounded-lg disabled:opacity-70"
             >
-              {loading ? "Registering..." : "Register"}
+              {loading ? "Creating account..." : "Register"}
             </button>
           </form>
 
-          <p className="text-center mt-4">
-            Already have an account?{" "}
-            <Link to="/" className="text-blue-600">
-              Login
-            </Link>
+          <p className="mt-4">
+            Already have an account? <Link to="/">Login</Link>
           </p>
-
         </div>
       </div>
     </div>

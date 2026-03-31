@@ -3,43 +3,74 @@ const router = express.Router();
 const protect = require("../middleware/authMiddleware");
 const Learning = require("../models/Learning");
 
-// ✅ GET ALL TOPICS
+const normalizeDifficulty = (value) => {
+  if (["Easy", "Medium", "Hard"].includes(value)) {
+    return value;
+  }
+
+  return "Easy";
+};
+
 router.get("/", protect, async (req, res) => {
-  const topics = await Learning.find({ user: req.user._id });
-  res.json(topics);
+  try {
+    const topics = await Learning.find({ user: req.user.email })
+      .sort({
+        createdAt: -1,
+      })
+      .lean();
+
+    res.json(topics);
+  } catch (err) {
+    console.log("LEARNING FETCH ERROR:", err);
+    res.status(500).json({ message: "Fetch failed" });
+  }
 });
 
-// ✅ CREATE NEW TOPIC
 router.post("/", protect, async (req, res) => {
   try {
-    const { title, difficulty } = req.body;
+    const normalizedTitle = req.body.title?.trim();
+
+    if (!normalizedTitle) {
+      return res.status(400).json({ message: "Title is required" });
+    }
 
     const newTopic = new Learning({
-      title,
-      difficulty,
-      user: req.user._id,
+      title: normalizedTitle,
+      difficulty: normalizeDifficulty(req.body.difficulty),
+      user: req.user.email,
     });
 
     const saved = await newTopic.save();
     res.status(201).json(saved);
   } catch (err) {
-    console.log(err);
+    console.log("LEARNING CREATE ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// ✅ DELETE TOPIC
 router.delete("/:id", protect, async (req, res) => {
-  await Learning.findByIdAndDelete(req.params.id);
-  res.json({ message: "Deleted" });
+  try {
+    const deletedTopic = await Learning.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user.email,
+    });
+
+    if (!deletedTopic) {
+      return res.status(404).json({ message: "Topic not found" });
+    }
+
+    res.json({ message: "Deleted" });
+  } catch (err) {
+    console.log("LEARNING DELETE ERROR:", err);
+    res.status(500).json({ message: "Delete failed" });
+  }
 });
 
-// ⭐ UPDATE STATUS
 router.patch("/:id", protect, async (req, res) => {
   try {
     const item = await Learning.findOne({
       _id: req.params.id,
-      user: req.user._id,
+      user: req.user.email,
     });
 
     if (!item) {
@@ -51,16 +82,16 @@ router.patch("/:id", protect, async (req, res) => {
       item.completedAt = null;
     } else {
       item.status = "Completed";
-      item.completedAt = new Date(); // ⭐ SAVE REAL COMPLETION TIME
+      item.completedAt = new Date();
     }
 
     await item.save();
 
     res.json(item);
   } catch (err) {
+    console.log("LEARNING UPDATE ERROR:", err);
     res.status(500).json({ message: "Update failed" });
   }
 });
-
 
 module.exports = router;
